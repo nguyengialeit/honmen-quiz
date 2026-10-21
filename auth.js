@@ -4,15 +4,10 @@
   // === Dán Client ID OAuth (loại "Web application") từ Google Cloud Console vào đây ===
   var GOOGLE_CLIENT_ID = "101367679859-qabbv5fe6a37sfk2mtf4l5f38i3tm9b0.apps.googleusercontent.com";
 
-  // Danh sách email được phép đăng nhập, lưu dưới dạng SHA-256 (không lưu email dạng chữ rõ).
-  // Đây chỉ là một lớp cản trở (obfuscation) vì trang tĩnh không có server — không phải bảo mật thực sự:
-  // ai mở DevTools và tự tạo ID token hợp lệ của Google cho MỘT email bất kỳ rồi hash email đó để so khớp
-  // thì vẫn qua được, nhưng việc này đòi hỏi họ phải đăng nhập Google bằng chính email đó.
-  var ALLOWED_HASHES = [
-    "7e168e74710427043f7ffff12d263d7381801012cf4dc9424a52e7866a13099c",
-    "ba8154abebade8bb1e92f95abacdc5fd3c9cb0f5d2d0b35c2d1de7545f0b8b4f",
-    "2dc728e4f046bbb491a9806d60ba87f8617254aaa53f1fc2dd1cd45743c62831"
-  ];
+  // Không whitelist email trong code: app OAuth này đang ở chế độ "Testing" trên Google Cloud
+  // Console, nên Google chỉ cho phép các email nằm trong danh sách "Test users" đăng nhập được —
+  // ai không có trong danh sách đó bị Google chặn ngay từ màn hình đăng nhập, trước khi tới trang này.
+  // Nếu sau này đổi app sang "Production" hoặc thêm test user khác, nhớ thêm lại việc kiểm tra email ở đây.
 
   var SESSION_KEY = "honmen_auth_session";
   var SESSION_TTL_MS = 12 * 60 * 60 * 1000; // 12 giờ
@@ -23,15 +18,6 @@
   var gateLoadingEl = document.getElementById("gateLoading");
   var userEmailLbl = document.getElementById("userEmailLbl");
   var btnLogout = document.getElementById("btnLogout");
-
-  function sha256Hex(str){
-    var data = new TextEncoder().encode(str);
-    return crypto.subtle.digest("SHA-256", data).then(function(buf){
-      return Array.prototype.map.call(new Uint8Array(buf), function(b){
-        return b.toString(16).padStart(2, "0");
-      }).join("");
-    });
-  }
 
   function showError(msg){
     gateErrorEl.textContent = msg;
@@ -56,10 +42,10 @@
     gateEl.hidden = false;
   }
 
-  function saveSession(emailHash, email){
+  function saveSession(email){
     try{
       localStorage.setItem(SESSION_KEY, JSON.stringify({
-        h: emailHash, e: email, exp: Date.now() + SESSION_TTL_MS
+        e: email, exp: Date.now() + SESSION_TTL_MS
       }));
     } catch(e){}
   }
@@ -70,7 +56,6 @@
       if(!raw) return null;
       var s = JSON.parse(raw);
       if(!s || !s.exp || Date.now() > s.exp) return null;
-      if(ALLOWED_HASHES.indexOf(s.h) === -1) return null;
       return s;
     } catch(e){ return null; }
   }
@@ -98,23 +83,13 @@
         if(payload.email_verified !== "true" && payload.email_verified !== true){
           throw new Error("unverified");
         }
-        var email = String(payload.email || "").trim().toLowerCase();
-        return sha256Hex(email).then(function(hash){
-          if(ALLOWED_HASHES.indexOf(hash) === -1){
-            throw new Error("not_allowed");
-          }
-          saveSession(hash, payload.email);
-          setLoading(false);
-          unlock(payload.email);
-        });
+        saveSession(payload.email);
+        setLoading(false);
+        unlock(payload.email);
       })
       .catch(function(err){
         setLoading(false);
-        if(err && err.message === "not_allowed"){
-          showError("Email này không có quyền truy cập trang này.");
-        } else {
-          showError("Đăng nhập thất bại, vui lòng thử lại.");
-        }
+        showError("Đăng nhập thất bại, vui lòng thử lại.");
       });
   };
 
