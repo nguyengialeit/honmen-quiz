@@ -127,6 +127,7 @@
   }
 
   // ---------- DOM refs ----------
+  var homeHeader = document.getElementById("homeHeader");
   var screenHome = document.getElementById("screen-home");
   var screenQuiz = document.getElementById("screen-quiz");
   var screenResult = document.getElementById("screen-result");
@@ -169,6 +170,7 @@
   btnResume.addEventListener("click", unpauseQuiz);
 
   function showScreen(name){
+    homeHeader.hidden = name!=="home";
     screenHome.hidden = name!=="home";
     screenQuiz.hidden = name!=="quiz";
     screenResult.hidden = name!=="result";

@@ -47,6 +47,8 @@ h1{font-size:1.5rem;margin:0 0 4px;letter-spacing:-.01em;text-wrap:balance}
 .btn-primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 .btn-primary:hover{filter:brightness(1.07)}
 .btn-row{display:flex;gap:10px;flex-wrap:wrap}
+.btn-row-eq{flex-wrap:nowrap}
+.btn-row-eq .btn{flex:1 1 0;min-width:0;padding:12px 6px;font-size:.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .btn[disabled]{opacity:.45;cursor:not-allowed}
 .modelist{display:flex;flex-direction:column;gap:12px}
 .mode-card{
@@ -183,7 +185,7 @@ footer{text-align:center;color:var(--ink-dim);font-size:.78rem;margin-top:4px}
     <span id="userEmailLbl"></span>
     <button type="button" id="btnLogout">Đăng xuất</button>
   </div>
-  <div>
+  <div id="homeHeader">
     <h1>Ôn thi Honmen Saitama</h1>
     <p class="sub">5 đề luyện tập — mỗi đề 90 câu Đúng/Sai + 5 câu tình huống, 100 điểm</p>
   </div>
@@ -226,10 +228,10 @@ footer{text-align:center;color:var(--ink-dim);font-size:.78rem;margin-top:4px}
         <button class="btn btn-primary" id="thCheckBtn">Kiểm tra</button>
       </div>
 
-      <div class="btn-row" style="margin-top:18px">
+      <div class="btn-row btn-row-eq" style="margin-top:18px">
         <button class="btn" id="btnQuit">⟵ Thoát</button>
         <button class="btn" id="btnPause" hidden>⏸ Tạm dừng</button>
-        <button class="btn btn-primary" id="btnNext" style="margin-left:auto" disabled>Câu tiếp →</button>
+        <button class="btn btn-primary" id="btnNext" disabled>Câu tiếp →</button>
       </div>
     </div>
   </section>
