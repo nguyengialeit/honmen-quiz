@@ -75,6 +75,32 @@
     try{ localStorage.removeItem(STORAGE_PREFIX + examKey); } catch(e){}
   }
 
+  // ---------- attempt history (this browser only) ----------
+  var HISTORY_KEY = "honmen_history";
+  var HISTORY_MAX = 50;
+
+  function loadHistory(){
+    try{
+      var arr = JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]");
+      return Array.isArray(arr) ? arr : [];
+    } catch(e){ return []; }
+  }
+
+  function pushHistory(entry){
+    try{
+      var arr = loadHistory();
+      arr.unshift(entry);
+      if(arr.length > HISTORY_MAX) arr = arr.slice(0, HISTORY_MAX);
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(arr));
+    } catch(e){}
+  }
+
+  function formatDate(ts){
+    var d = new Date(ts);
+    function pad(n){ return n<10 ? "0"+n : ""+n; }
+    return pad(d.getDate())+"/"+pad(d.getMonth()+1)+"/"+d.getFullYear()+" "+pad(d.getHours())+":"+pad(d.getMinutes());
+  }
+
   function stopTimer(){
     if(state.timerId){ clearInterval(state.timerId); state.timerId = null; }
   }
@@ -131,6 +157,10 @@
   var screenHome = document.getElementById("screen-home");
   var screenQuiz = document.getElementById("screen-quiz");
   var screenResult = document.getElementById("screen-result");
+  var screenHistory = document.getElementById("screen-history");
+  var btnOpenHistory = document.getElementById("btnOpenHistory");
+  var btnHistoryBack = document.getElementById("btnHistoryBack");
+  var historyList = document.getElementById("historyList");
   var modeList = document.getElementById("modeList");
   var qModeLabel = document.getElementById("qModeLabel");
   var qCounter = document.getElementById("qCounter");
@@ -174,7 +204,65 @@
     screenHome.hidden = name!=="home";
     screenQuiz.hidden = name!=="quiz";
     screenResult.hidden = name!=="result";
+    screenHistory.hidden = name!=="history";
     window.scrollTo(0,0);
+  }
+
+  btnOpenHistory.addEventListener("click", function(){
+    renderHistoryScreen();
+    showScreen("history");
+  });
+  btnHistoryBack.addEventListener("click", function(){
+    renderHome();
+    showScreen("home");
+  });
+
+  function renderHistoryScreen(){
+    historyList.innerHTML = "";
+    var hist = loadHistory();
+    if(hist.length === 0){
+      var empty = document.createElement("div");
+      empty.className = "sub";
+      empty.style.padding = "16px 4px";
+      empty.textContent = "Chưa có lượt làm bài nào.";
+      historyList.appendChild(empty);
+      return;
+    }
+    hist.forEach(function(entry){
+      var pct = entry.maxPoints ? Math.round(entry.earned/entry.maxPoints*100) : 0;
+      var passInfo = "";
+      if(entry.maxPoints === 100){
+        passInfo = entry.earned >= 90 ? ' · <b class="tag-ok">ĐỖ</b>' : ' · <b class="tag-no">TRƯỢT</b>';
+      }
+      var row = document.createElement("div");
+      row.className = "review-row";
+      var head = document.createElement("button");
+      head.type = "button";
+      head.className = "review-head";
+      head.innerHTML =
+        '<span class="badge ' + (pct>=70?"ok":"no") + '">' + pct + '%</span>' +
+        '<span class="rtext">' + escapeHtml(entry.examLabel) + ' · ' + formatDate(entry.ts) + (entry.timeUp?" (hết giờ)":"") + '</span>' +
+        '<span class="rnum">' + entry.earned + '/' + entry.maxPoints + passInfo + '</span>' +
+        '<span class="rchev">›</span>';
+      var body = document.createElement("div");
+      body.className = "review-body";
+      body.hidden = true;
+      var innerList = document.createElement("div");
+      innerList.className = "reviewlist";
+      body.appendChild(innerList);
+      var rendered = false;
+      head.addEventListener("click", function(){
+        var open = row.classList.toggle("open");
+        body.hidden = !open;
+        if(open && !rendered){
+          renderReviewList(entry.results, innerList);
+          rendered = true;
+        }
+      });
+      row.appendChild(head);
+      row.appendChild(body);
+      historyList.appendChild(row);
+    });
   }
 
   // ---------- home ----------
@@ -460,7 +548,28 @@
     addStat("Điểm tình huống", (thResults.filter(function(r){return r.correct;}).length*2) + "/" + (thResults.length*2) + " điểm");
     addStat("Tổng điểm", earned + "/" + maxPoints);
 
-    renderReviewList();
+    renderReviewList(state.results, document.getElementById("reviewList"));
+
+    pushHistory({
+      ts: Date.now(),
+      examLabel: state.examLabel,
+      timeUp: !!timeUp,
+      earned: earned,
+      maxPoints: maxPoints,
+      correctCount: correctCount,
+      total: total,
+      results: state.results.map(function(r){
+        return {
+          kind: r.kind,
+          correct: r.correct,
+          weight: r.weight,
+          unanswered: !!r.unanswered,
+          userAns: r.userAns===undefined ? null : r.userAns,
+          userStmts: r.userStmts || null,
+          item: cloneFresh(r.item)
+        };
+      })
+    });
 
     var wrongCount = total - correctCount;
     btnRedo.hidden = wrongCount === 0;
@@ -472,10 +581,9 @@
     showScreen("result");
   }
 
-  function renderReviewList(){
-    var list = document.getElementById("reviewList");
+  function renderReviewList(results, list){
     list.innerHTML = "";
-    state.results.forEach(function(r, i){
+    results.forEach(function(r, i){
       var row = document.createElement("div");
       row.className = "review-row";
       var shortText = r.kind === "simple" ? r.item.q : r.item.scene;
