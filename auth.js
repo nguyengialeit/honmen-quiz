@@ -2,7 +2,7 @@
   "use strict";
 
   // === Dán Client ID OAuth (loại "Web application") từ Google Cloud Console vào đây ===
-  var GOOGLE_CLIENT_ID = "PASTE_YOUR_GOOGLE_CLIENT_ID_HERE.apps.googleusercontent.com";
+  var GOOGLE_CLIENT_ID = "101367679859-qabbv5fe6a37sfk2mtf4l5f38i3tm9b0.apps.googleusercontent.com";
 
   // Danh sách email được phép đăng nhập, lưu dưới dạng SHA-256 (không lưu email dạng chữ rõ).
   // Đây chỉ là một lớp cản trở (obfuscation) vì trang tĩnh không có server — không phải bảo mật thực sự:
